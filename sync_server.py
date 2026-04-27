@@ -1,8 +1,9 @@
 import asyncio
 import json
 import pathlib
+import socket
 import threading
-from functools import partial
+from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional, Set
 
@@ -14,6 +15,26 @@ HTTP_PORT = 8000
 WS_PORT = 5678
 FILE_PATH = pathlib.Path("liveshare.py")
 WEB_DIR = pathlib.Path(__file__).with_name("web")
+
+
+def detect_lan_ip() -> str:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            lan_ip = sock.getsockname()[0]
+            if lan_ip and not lan_ip.startswith("127."):
+                return lan_ip
+    except OSError:
+        pass
+
+    try:
+        hostname_ip = socket.gethostbyname(socket.gethostname())
+        if hostname_ip and not hostname_ip.startswith("127."):
+            return hostname_ip
+    except OSError:
+        pass
+
+    return "127.0.0.1"
 
 
 class SyncServer:
@@ -107,15 +128,52 @@ class SyncServer:
             await self.broadcast_presence()
 
 
-def run_http_server() -> None:
-    handler = partial(SimpleHTTPRequestHandler, directory=str(WEB_DIR))
+class EditorHTTPRequestHandler(SimpleHTTPRequestHandler):
+    share_url = f"http://127.0.0.1:{HTTP_PORT}"
+    local_url = f"http://127.0.0.1:{HTTP_PORT}"
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, directory=str(WEB_DIR), **kwargs)
+
+    def do_GET(self) -> None:
+        if self.path == "/api/session":
+            payload = json.dumps(
+                {
+                    "shareUrl": self.share_url,
+                    "localUrl": self.local_url,
+                    "httpPort": HTTP_PORT,
+                    "wsPort": WS_PORT,
+                }
+            ).encode("utf-8")
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+
+        super().do_GET()
+
+
+def run_http_server(share_url: str, local_url: str) -> None:
+    EditorHTTPRequestHandler.share_url = share_url
+    EditorHTTPRequestHandler.local_url = local_url
+    handler = EditorHTTPRequestHandler
     httpd = ThreadingHTTPServer((HOST, HTTP_PORT), handler)
-    print(f"Editor UI listening on http://127.0.0.1:{HTTP_PORT}")
+    print(f"Editor UI listening on {local_url}")
+    print(f"Share this URL with the student: {share_url}")
     httpd.serve_forever()
 
 
 async def main() -> None:
-    http_thread = threading.Thread(target=run_http_server, daemon=True)
+    lan_ip = detect_lan_ip()
+    local_url = f"http://127.0.0.1:{HTTP_PORT}"
+    share_url = f"http://{lan_ip}:{HTTP_PORT}"
+    http_thread = threading.Thread(
+        target=run_http_server,
+        args=(share_url, local_url),
+        daemon=True,
+    )
     http_thread.start()
 
     server = SyncServer(FILE_PATH)

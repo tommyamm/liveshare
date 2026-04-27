@@ -4,15 +4,17 @@ const bridgeStatus = document.getElementById("bridge-status");
 const participants = document.getElementById("participants");
 const saveState = document.getElementById("save-state");
 const lineCount = document.getElementById("line-count");
+const copyLinkButton = document.getElementById("copy-link-button");
+const copyLinkStatus = document.getElementById("copy-link-status");
 
 const BRIDGE_URL = "http://127.0.0.1:8765";
 const DEBOUNCE_MS = 75;
 
 let socket = null;
 let debounceTimer = null;
-let bridgeOnline = false;
 let applyingRemote = false;
 let lastSyncedContent = "";
+let shareUrl = window.location.origin;
 
 function setStatus(element, value, online) {
   element.textContent = value;
@@ -37,11 +39,9 @@ async function saveToBridge(content) {
       throw new Error("bridge write failed");
     }
 
-    bridgeOnline = true;
     setStatus(bridgeStatus, "online", true);
     return true;
   } catch (error) {
-    bridgeOnline = false;
     setStatus(bridgeStatus, "offline", false);
     saveState.textContent = "Local file bridge is unavailable";
     return false;
@@ -62,12 +62,25 @@ async function loadFromBridge() {
       updateLineCount();
     }
 
-    bridgeOnline = true;
     setStatus(bridgeStatus, "online", true);
   } catch (error) {
-    bridgeOnline = false;
     setStatus(bridgeStatus, "offline", false);
     saveState.textContent = "Start sync_client.py on this machine";
+  }
+}
+
+async function loadSessionInfo() {
+  try {
+    const response = await fetch("/api/session");
+    if (!response.ok) {
+      throw new Error("session fetch failed");
+    }
+    const payload = await response.json();
+    if (typeof payload.shareUrl === "string") {
+      shareUrl = payload.shareUrl;
+    }
+  } catch (error) {
+    shareUrl = window.location.origin;
   }
 }
 
@@ -149,6 +162,15 @@ function connectSocket() {
   });
 }
 
+async function copyStudentLink() {
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    copyLinkStatus.textContent = "Copied";
+  } catch (error) {
+    copyLinkStatus.textContent = shareUrl;
+  }
+}
+
 editor.addEventListener("input", () => {
   updateLineCount();
   if (applyingRemote) {
@@ -156,6 +178,10 @@ editor.addEventListener("input", () => {
   }
   saveState.textContent = "Typing...";
   schedulePush();
+});
+
+copyLinkButton.addEventListener("click", () => {
+  void copyStudentLink();
 });
 
 window.addEventListener("beforeunload", () => {
@@ -170,5 +196,6 @@ window.addEventListener("beforeunload", () => {
 });
 
 updateLineCount();
+void loadSessionInfo();
 void loadFromBridge();
 connectSocket();

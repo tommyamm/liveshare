@@ -39,6 +39,11 @@ body {
   justify-content: space-between;
   align-items: end;
   gap: 16px;
+  flex-wrap: wrap;
+}
+
+.title-block {
+  min-width: 180px;
 }
 
 .eyebrow {
@@ -59,6 +64,34 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, minmax(92px, 1fr));
   gap: 10px;
+}
+
+.quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.action-button {
+  min-width: 178px;
+  height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(29, 110, 242, 0.25);
+}
+
+.action-button:hover {
+  background: #185fce;
+}
+
+.copy-status {
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .status-chip {
@@ -140,6 +173,11 @@ h1 {
   .topbar {
     align-items: start;
     flex-direction: column;
+  }
+
+  .quick-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .status-grid {
