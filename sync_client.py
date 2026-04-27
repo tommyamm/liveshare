@@ -4,11 +4,11 @@ import pathlib
 import sys
 from typing import Optional
 
-import websockets
+from websockets.asyncio.client import ClientConnection, connect
 
 
 PORT = 5678
-POLL_INTERVAL = 0.3
+POLL_INTERVAL = 0.1
 FILE_PATH = pathlib.Path("liveshare.py")
 
 
@@ -16,7 +16,7 @@ class SyncClient:
     def __init__(self, server_host: str, file_path: pathlib.Path) -> None:
         self.server_host = server_host
         self.file_path = file_path
-        self.websocket: Optional[websockets.WebSocketClientProtocol] = None
+        self.websocket: Optional[ClientConnection] = None
         self.last_local_content = self._ensure_file_exists()
         self.last_received_content: Optional[str] = None
 
@@ -87,7 +87,7 @@ class SyncClient:
         uri = f"ws://{self.server_host}:{PORT}"
         print(f"Connecting to {uri}")
 
-        async with websockets.connect(uri) as websocket:
+        async with connect(uri) as websocket:
             self.websocket = websocket
             await asyncio.gather(
                 self.send_local_changes(),

@@ -3,8 +3,7 @@ import json
 import pathlib
 from typing import Optional, Set
 
-import websockets
-from websockets import WebSocketServerProtocol
+from websockets.asyncio.server import ServerConnection, serve
 
 
 HOST = "0.0.0.0"
@@ -15,7 +14,7 @@ FILE_PATH = pathlib.Path("liveshare.py")
 class SyncServer:
     def __init__(self, file_path: pathlib.Path) -> None:
         self.file_path = file_path
-        self.clients: Set[WebSocketServerProtocol] = set()
+        self.clients: Set[ServerConnection] = set()
         self.current_content = self._load_initial_content()
 
     def _load_initial_content(self) -> str:
@@ -23,7 +22,7 @@ class SyncServer:
             return self.file_path.read_text(encoding="utf-8")
         return ""
 
-    async def broadcast(self, content: str, sender: Optional[WebSocketServerProtocol]) -> None:
+    async def broadcast(self, content: str, sender: Optional[ServerConnection]) -> None:
         if not self.clients:
             return
 
@@ -36,7 +35,7 @@ class SyncServer:
                 return_exceptions=True,
             )
 
-    async def handler(self, websocket: WebSocketServerProtocol) -> None:
+    async def handler(self, websocket: ServerConnection) -> None:
         self.clients.add(websocket)
         print(f"Client connected: {websocket.remote_address}")
 
@@ -73,7 +72,7 @@ class SyncServer:
 
 async def main() -> None:
     server = SyncServer(FILE_PATH)
-    async with websockets.serve(server.handler, HOST, PORT):
+    async with serve(server.handler, HOST, PORT):
         print(f"Sync server listening on ws://{HOST}:{PORT}")
         await asyncio.Future()
 
