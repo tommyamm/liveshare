@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Share Python</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">LAN Live Share</p>
+          <h1>liveshare.py</h1>
+        </div>
+        <div class="status-grid">
+          <div class="status-chip">
+            <span class="status-label">Sync</span>
+            <span id="ws-status" class="status-value offline">offline</span>
+          </div>
+          <div class="status-chip">
+            <span class="status-label">Bridge</span>
+            <span id="bridge-status" class="status-value offline">offline</span>
+          </div>
+          <div class="status-chip">
+            <span class="status-label">Users</span>
+            <span id="participants" class="status-value">1</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="editor-meta">
+          <span id="save-state">Waiting for connection</span>
+          <span id="line-count">1 line</span>
+        </div>
+        <textarea
+          id="editor"
+          spellcheck="false"
+          autocorrect="off"
+          autocapitalize="off"
+          placeholder="print('Start typing Python here')"
+        ></textarea>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
